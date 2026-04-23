@@ -1,2 +1,0 @@
-# SOATool
-SOA Tool
