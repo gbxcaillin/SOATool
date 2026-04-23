@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOA Completion Agent — GBX Professional Services</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b2e;
+    --navy-mid: #122440;
+    --navy-light: #1a3050;
+    --gold: #c9a84c;
+    --gold-light: #e2c47a;
+    --gold-dim: #8a6f2e;
+    --white: #f5f3ee;
+    --white-dim: #b8b4aa;
+    --red: #e84040;
+    --success: #3ecf8e;
+    --border: rgba(201,168,76,0.18);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--navy);
+    color: var(--white);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -120px; right: -120px;
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page-wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  header {
+    padding: 40px 0 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 56px;
+  }
+
+  .logo-area { display: flex; align-items: center; gap: 14px; }
+
+  .logo-mark {
+    width: 42px; height: 42px;
+    border: 1.5px solid var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 600;
+    color: var(--gold); letter-spacing: 1px; flex-shrink: 0;
+  }
+
+  .logo-text { display: flex; flex-direction: column; }
+  .logo-text .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px; font-weight: 600; color: var(--white);
+    letter-spacing: 1.5px; text-transform: uppercase; line-height: 1;
+  }
+  .logo-text .sub {
+    font-size: 10px; font-weight: 400; color: var(--gold);
+    letter-spacing: 2.5px; text-transform: uppercase; margin-top: 4px;
+  }
+
+  .header-badge {
+    font-size: 10px; font-weight: 500; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--gold-dim);
+    border: 1px solid var(--border); padding: 6px 14px;
+  }
+
+  .hero { margin-bottom: 56px; animation: fadeUp 0.7s ease both; }
+  .hero-eyebrow {
+    font-size: 10px; font-weight: 500; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hero-eyebrow::before { content: ''; display: block; width: 32px; height: 1px; background: var(--gold); }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(36px, 5vw, 54px); font-weight: 300;
+    line-height: 1.1; color: var(--white); margin-bottom: 20px;
+  }
+  h1 em { font-style: italic; color: var(--gold-light); }
+
+  .hero-desc { font-size: 14px; line-height: 1.8; color: var(--white-dim); max-width: 560px; }
+
+  /* Pipeline */
+  .pipeline {
+    display: flex; align-items: center;
+    margin-bottom: 56px; animation: fadeUp 0.7s 0.1s ease both;
+  }
+  .pip-step {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 8px; position: relative;
+  }
+  .pip-step:not(:last-child)::after {
+    content: ''; position: absolute; top: 16px; left: 50%;
+    width: 100%; height: 1px; background: var(--border);
+  }
+  .pip-step.active:not(:last-child)::after,
+  .pip-step.done:not(:last-child)::after {
+    background: linear-gradient(90deg, var(--gold), var(--border));
+  }
+  .pip-num {
+    width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500; color: var(--white-dim);
+    background: var(--navy); position: relative; z-index: 1; transition: all 0.3s ease;
+  }
+  .pip-step.active .pip-num { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 4px rgba(201,168,76,0.12); }
+  .pip-step.done .pip-num { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+  .pip-step.done .pip-num::after { content: '✓'; font-size: 13px; }
+  .pip-step.done .pip-num span { display: none; }
+  .pip-label { font-size: 9px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--white-dim); text-align: center; transition: color 0.3s; }
+  .pip-step.active .pip-label { color: var(--gold); }
+
+  /* Upload grid */
+  .upload-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 24px; animation: fadeUp 0.7s 0.2s ease both;
+  }
+  @media (max-width: 580px) { .upload-grid { grid-template-columns: 1fr; } }
+
+  .upload-card {
+    background: var(--navy-mid); border: 1px solid var(--border);
+    padding: 28px 20px 24px; cursor: pointer; transition: all 0.25s ease;
+    position: relative; overflow: hidden;
+  }
+  .upload-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: var(--gold);
+    transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease;
+  }
+  .upload-card:hover { border-color: rgba(201,168,76,0.4); background: var(--navy-light); }
+  .upload-card:hover::before, .upload-card.has-file::before { transform: scaleX(1); }
+  .upload-card.has-file { border-color: rgba(201,168,76,0.5); background: var(--navy-light); }
+  .upload-card.drag-over { border-color: var(--gold); background: var(--navy-light); box-shadow: inset 0 0 0 1px var(--gold); }
+
+  .card-icon { width: 36px; height: 36px; margin-bottom: 16px; opacity: 0.6; transition: opacity 0.25s; }
+  .upload-card:hover .card-icon, .upload-card.has-file .card-icon { opacity: 1; }
+  .card-type { font-size: 9px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+  .card-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; color: var(--white); margin-bottom: 10px; line-height: 1.2; }
+  .card-hint { font-size: 11px; color: var(--white-dim); line-height: 1.6; }
+
+  .card-filename {
+    margin-top: 14px; padding: 8px 10px;
+    background: rgba(201,168,76,0.08); border-left: 2px solid var(--gold);
+    font-size: 11px; color: var(--gold-light);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: none;
+  }
+  .upload-card.has-file .card-filename { display: block; }
+
+  .card-remove {
+    position: absolute; top: 12px; right: 12px;
+    width: 22px; height: 22px;
+    background: rgba(232,64,64,0.12); border: 1px solid rgba(232,64,64,0.3);
+    color: var(--red); font-size: 14px; cursor: pointer;
+    display: none; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  .upload-card.has-file .card-remove { display: flex; }
+  .card-remove:hover { background: rgba(232,64,64,0.25); }
+  input[type="file"] { display: none; }
+
+  /* Options panel */
+  .options-panel {
+    background: var(--navy-mid); border: 1px solid var(--border);
+    padding: 28px; margin-bottom: 24px;
+    animation: fadeUp 0.7s 0.3s ease both;
+  }
+
+  .options-title {
+    font-size: 10px; font-weight: 600; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .options-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 580px) { .options-grid { grid-template-columns: 1fr; } }
+
+  .option-group { display: flex; flex-direction: column; gap: 8px; }
+
+  .option-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--white-dim);
+  }
+
+  .option-label span {
+    color: var(--red); margin-left: 3px; font-size: 11px;
+  }
+
+  /* Select dropdown */
+  .styled-select {
+    background: var(--navy); border: 1px solid var(--border);
+    color: var(--white); font-family: 'Outfit', sans-serif;
+    font-size: 12px; font-weight: 400; padding: 10px 14px;
+    cursor: pointer; outline: none; width: 100%;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    transition: border-color 0.2s;
+  }
+  .styled-select:focus { border-color: var(--gold); }
+  .styled-select.has-value { border-color: rgba(201,168,76,0.5); color: var(--gold-light); }
+  .styled-select option { background: var(--navy-mid); color: var(--white); }
+
+  /* Checkbox toggle */
+  .checkbox-wrap {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border: 1px solid var(--border);
+    background: var(--navy); cursor: pointer; transition: all 0.2s;
+  }
+  .checkbox-wrap:hover { border-color: rgba(201,168,76,0.4); }
+  .checkbox-wrap.active { border-color: rgba(201,168,76,0.5); background: rgba(201,168,76,0.05); }
+
+  .checkbox-box {
+    width: 16px; height: 16px; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.2s;
+  }
+  .checkbox-wrap.active .checkbox-box { background: var(--gold); border-color: var(--gold); }
+  .checkbox-mark { font-size: 10px; color: var(--navy); display: none; }
+  .checkbox-wrap.active .checkbox-mark { display: block; }
+
+  .checkbox-text { font-size: 11px; color: var(--white-dim); line-height: 1.4; }
+  .checkbox-wrap.active .checkbox-text { color: var(--gold-light); }
+
+  /* Run section */
+  .run-wrap {
+    display: flex; justify-content: flex-end; align-items: center;
+    gap: 20px; animation: fadeUp 0.7s 0.4s ease both; margin-bottom: 48px;
+    flex-wrap: wrap;
+  }
+
+  .run-note { font-size: 11px; color: var(--white-dim); line-height: 1.5; max-width: 300px; text-align: right; }
+
+  .btn-run {
+    background: var(--gold); color: var(--navy); border: none;
+    padding: 16px 40px; font-family: 'Outfit', sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 2.5px;
+    text-transform: uppercase; cursor: pointer; transition: all 0.25s ease;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .btn-run::after {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,0.15);
+    transform: translateX(-100%); transition: transform 0.3s ease;
+  }
+  .btn-run:hover::after { transform: translateX(0); }
+  .btn-run:disabled { background: var(--gold-dim); cursor: not-allowed; opacity: 0.6; }
+  .btn-run:disabled::after { display: none; }
+
+  /* Status */
+  .status-panel {
+    background: var(--navy-mid); border: 1px solid var(--border);
+    padding: 28px; display: none; animation: fadeUp 0.4s ease both;
+    margin-bottom: 16px;
+  }
+  .status-panel.visible { display: block; }
+  .status-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .status-title { font-size: 10px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold); }
+
+  .status-spinner {
+    width: 16px; height: 16px; border: 2px solid var(--border);
+    border-top-color: var(--gold); border-radius: 50%;
+    animation: spin 0.8s linear infinite; display: none;
+  }
+  .status-spinner.visible { display: block; }
+
+  .log-lines { font-size: 12px; font-family: 'Courier New', monospace; line-height: 2; color: var(--white-dim); }
+  .log-line { display: flex; align-items: flex-start; gap: 12px; }
+  .log-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); margin-top: 7px; flex-shrink: 0; transition: background 0.3s; }
+  .log-line.active .log-dot { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+  .log-line.done .log-dot { background: var(--success); }
+  .log-line.error .log-dot { background: var(--red); }
+  .log-line.active .log-text { color: var(--white); }
+  .log-line.done .log-text { color: var(--white-dim); }
+  .log-line.error .log-text { color: var(--red); }
+
+  /* Result */
+  .result-panel { display: none; animation: fadeUp 0.4s ease both; margin-bottom: 48px; }
+  .result-panel.visible { display: block; }
+
+  .result-box {
+    background: rgba(62,207,142,0.06); border: 1px solid rgba(62,207,142,0.25);
+    padding: 24px 28px; display: flex; align-items: center;
+    justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+  .result-box.error-box { background: rgba(232,64,64,0.06); border-color: rgba(232,64,64,0.25); }
+
+  .result-info { flex: 1; }
+  .result-label { font-size: 9px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--success); margin-bottom: 6px; }
+  .error-box .result-label { color: var(--red); }
+  .result-name { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--white); }
+  .result-meta { font-size: 11px; color: var(--white-dim); margin-top: 4px; }
+
+  .btn-download {
+    background: transparent; border: 1px solid var(--success);
+    color: var(--success); padding: 12px 28px;
+    font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+    transition: all 0.2s; text-decoration: none; display: inline-block;
+  }
+  .btn-download:hover { background: rgba(62,207,142,0.1); }
+
+  /* Error message */
+  .error-msg {
+    background: rgba(232,64,64,0.08); border: 1px solid rgba(232,64,64,0.3);
+    padding: 16px 20px; font-size: 12px; color: var(--red);
+    margin-top: 12px; display: none; line-height: 1.6;
+  }
+  .error-msg.visible { display: block; }
+
+  /* Disclaimer */
+  .disclaimer {
+    margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--border);
+    display: flex; gap: 16px; align-items: flex-start;
+    animation: fadeUp 0.7s 0.5s ease both;
+  }
+  .disc-icon { color: var(--gold-dim); font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .disc-text { font-size: 11px; line-height: 1.7; color: var(--white-dim); }
+  .disc-text strong { color: var(--white); font-weight: 500; }
+
+  footer {
+    margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .footer-brand { font-family: 'Cormorant Garamond', serif; font-size: 13px; color: var(--white-dim); letter-spacing: 1px; }
+  .footer-brand span { color: var(--gold); }
+  .footer-copy { font-size: 10px; color: var(--white-dim); opacity: 0.5; letter-spacing: 1px; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <header>
+    <div class="logo-area">
+      <div class="logo-mark">GBX</div>
+      <div class="logo-text">
+        <span class="brand">GBX Professional Services</span>
+        <span class="sub">Financial Intelligence Suite</span>
+      </div>
+    </div>
+    <div class="header-badge">Internal Use Only</div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-eyebrow">SOA Automation</div>
+    <h1>Statement of Advice<br><em>Completion Agent</em></h1>
+    <p class="hero-desc">Upload the Fact Finder and SOA Template, select the client's risk profile, and the agent will populate all mapped fields in red for adviser review.</p>
+  </div>
+
+  <!-- Pipeline -->
+  <div class="pipeline" id="pipeline">
+    <div class="pip-step active" id="pip-1"><div class="pip-num"><span>1</span></div><div class="pip-label">Upload</div></div>
+    <div class="pip-step" id="pip-2"><div class="pip-num"><span>2</span></div><div class="pip-label">Options</div></div>
+    <div class="pip-step" id="pip-3"><div class="pip-num"><span>3</span></div><div class="pip-label">Extract</div></div>
+    <div class="pip-step" id="pip-4"><div class="pip-num"><span>4</span></div><div class="pip-label">Fill SOA</div></div>
+    <div class="pip-step" id="pip-5"><div class="pip-num"><span>5</span></div><div class="pip-label">Complete</div></div>
+  </div>
+
+  <!-- Upload Cards — 2 column (no KYC note yet) -->
+  <div class="upload-grid">
+
+    <div class="upload-card" id="card-ff" onclick="triggerUpload('ff')"
+         ondragover="handleDrag(event,'ff')" ondragleave="clearDrag('ff')" ondrop="handleDrop(event,'ff')">
+      <button class="card-remove" onclick="removeFile(event,'ff')">×</button>
+      <svg class="card-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="3" width="22" height="30" rx="1" stroke="#c9a84c" stroke-width="1.2"/>
+        <path d="M8 10h14M8 15h14M8 20h10" stroke="#c9a84c" stroke-width="1.2" stroke-linecap="round"/>
+        <rect x="18" y="22" width="14" height="11" rx="1" fill="#0d1b2e" stroke="#3ecf8e" stroke-width="1.2"/>
+        <path d="M21 26h8M21 29h5" stroke="#3ecf8e" stroke-width="1" stroke-linecap="round"/>
+      </svg>
+      <div class="card-type">Step 01</div>
+      <div class="card-title">Fact Finder</div>
+      <div class="card-hint">Client data spreadsheet<br>.xlsx format</div>
+      <div class="card-filename" id="ff-name">—</div>
+      <input type="file" id="input-ff" accept=".xlsx,.xls" onchange="handleFile('ff',this)">
+    </div>
+
+    <div class="upload-card" id="card-soa" onclick="triggerUpload('soa')"
+         ondragover="handleDrag(event,'soa')" ondragleave="clearDrag('soa')" ondrop="handleDrop(event,'soa')">
+      <button class="card-remove" onclick="removeFile(event,'soa')">×</button>
+      <svg class="card-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="3" width="22" height="30" rx="1" stroke="#c9a84c" stroke-width="1.2"/>
+        <path d="M8 9h14M8 14h14M8 19h14M8 24h14M8 29h8" stroke="rgba(201,168,76,0.35)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M26 20l4 4-4 4" stroke="#c9a84c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 24h10" stroke="#c9a84c" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <div class="card-type">Step 02</div>
+      <div class="card-title">SOA Template</div>
+      <div class="card-hint">Document with {{placeholders}}<br>.docx format</div>
+      <div class="card-filename" id="soa-name">—</div>
+      <input type="file" id="input-soa" accept=".docx" onchange="handleFile('soa',this)">
+    </div>
+
+  </div>
+
+  <!-- Options Panel -->
+  <div class="options-panel">
+    <div class="options-title">Adviser Options</div>
+    <div class="options-grid">
+
+      <div class="option-group">
+        <div class="option-label">Risk Profile <span>*</span></div>
+        <select class="styled-select" id="risk-profile" onchange="onRiskChange(this)">
+          <option value="">— Select risk profile —</option>
+          <option value="High Growth">High Growth</option>
+          <option value="Growth">Growth</option>
+          <option value="Balanced">Balanced</option>
+          <option value="Moderately Conservative">Moderately Conservative</option>
+          <option value="Conservative">Conservative</option>
+        </select>
+        <div style="font-size:10px;color:var(--white-dim);margin-top:4px;">Required — inserted in red font</div>
+      </div>
+
+      <div class="option-group">
+        <div class="option-label">Client Insurance Status</div>
+        <div class="checkbox-wrap" id="no-insurance-wrap" onclick="toggleCheckbox()">
+          <div class="checkbox-box"><span class="checkbox-mark">✓</span></div>
+          <div class="checkbox-text">
+            <strong style="display:block;font-size:11px;color:inherit;margin-bottom:2px;">No Insurance</strong>
+            Remove the no-insurance section from the final SOA
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Run -->
+  <div class="run-wrap">
+    <div class="run-note">All auto-populated fields will appear in red for mandatory adviser review before client delivery.</div>
+    <button class="btn-run" id="btn-run" onclick="runAgent()" disabled>Generate SOA →</button>
+  </div>
+
+  <!-- Status -->
+  <div class="status-panel" id="status-panel">
+    <div class="status-header">
+      <div class="status-title">Processing Log</div>
+      <div class="status-spinner" id="spinner"></div>
+    </div>
+    <div class="log-lines" id="log-lines"></div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-msg" id="error-msg"></div>
+
+  <!-- Result -->
+  <div class="result-panel" id="result-panel"></div>
+
+  <div class="disclaimer">
+    <div class="disc-icon">⚠</div>
+    <div class="disc-text">
+      <strong>Compliance Notice:</strong> This tool generates a draft SOA only. All agent-populated content is flagged in red and must be reviewed and approved by a licensed financial adviser before the document is issued to a client. This tool does not provide financial advice. GBX Professional Services accepts no liability for outputs used without adviser review.
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-brand">GBX <span>Professional Services</span></div>
+    <div class="footer-copy">ABN 45 674 252 905 · 260 Spencer Street, Melbourne · Internal Use Only</div>
+  </footer>
+
+</div>
+
+<script>
+  const files = { ff: null, soa: null };
+  let noInsurance = false;
+
+  // ── File handling ──
+  function triggerUpload(key) {
+    if (event.target.classList.contains('card-remove')) return;
+    document.getElementById('input-' + key).click();
+  }
+  function handleFile(key, input) {
+    const file = input.files[0];
+    if (!file) return;
+    files[key] = file;
+    document.getElementById('card-' + key).classList.add('has-file');
+    document.getElementById(key + '-name').textContent = file.name;
+    checkReady();
+  }
+  function removeFile(e, key) {
+    e.stopPropagation();
+    files[key] = null;
+    document.getElementById('card-' + key).classList.remove('has-file');
+    document.getElementById(key + '-name').textContent = '—';
+    document.getElementById('input-' + key).value = '';
+    checkReady();
+  }
+  function handleDrag(e, key) { e.preventDefault(); document.getElementById('card-' + key).classList.add('drag-over'); }
+  function clearDrag(key) { document.getElementById('card-' + key).classList.remove('drag-over'); }
+  function handleDrop(e, key) {
+    e.preventDefault(); clearDrag(key);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    files[key] = file;
+    document.getElementById('card-' + key).classList.add('has-file');
+    document.getElementById(key + '-name').textContent = file.name;
+    checkReady();
+  }
+
+  // ── Options ──
+  function onRiskChange(sel) {
+    sel.classList.toggle('has-value', !!sel.value);
+    checkReady();
+  }
+  function toggleCheckbox() {
+    noInsurance = !noInsurance;
+    document.getElementById('no-insurance-wrap').classList.toggle('active', noInsurance);
+  }
+
+  // ── Validation ──
+  function checkReady() {
+    const risk = document.getElementById('risk-profile').value;
+    const ready = files.ff && files.soa && risk;
+    document.getElementById('btn-run').disabled = !ready;
+    if (files.ff && files.soa) setPipStep(2, 'active');
+    if (ready) setPipStep(2, 'done');
+  }
+
+  // ── Pipeline ──
+  function setPipStep(num, state) {
+    for (let i = 1; i <= 5; i++) {
+      const el = document.getElementById('pip-' + i);
+      el.classList.remove('active', 'done');
+    }
+    for (let i = 1; i < num; i++) document.getElementById('pip-' + i).classList.add('done');
+    if (num <= 5) document.getElementById('pip-' + num).classList.add('active');
+  }
+
+  // ── Log helpers ──
+  function addLog(text, state = '') {
+    const c = document.getElementById('log-lines');
+    const line = document.createElement('div');
+    line.className = 'log-line ' + state;
+    line.innerHTML = `<div class="log-dot"></div><div class="log-text">${text}</div>`;
+    c.appendChild(line);
+    return line;
+  }
+  function updateLog(line, text, state) {
+    line.className = 'log-line ' + state;
+    line.querySelector('.log-text').textContent = text;
+  }
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ── Run Agent ──
+  async function runAgent() {
+    document.getElementById('btn-run').disabled = true;
+    document.getElementById('error-msg').classList.remove('visible');
+    document.getElementById('result-panel').classList.remove('visible');
+    document.getElementById('result-panel').innerHTML = '';
+    document.getElementById('log-lines').innerHTML = '';
+    document.getElementById('status-panel').classList.add('visible');
+    document.getElementById('spinner').classList.add('visible');
+
+    setPipStep(3, 'active');
+    const l1 = addLog('Reading Fact Finder...', 'active');
+    await delay(400);
+    updateLog(l1, `✓ Fact Finder loaded — ${files.ff.name}`, 'done');
+
+    const l2 = addLog('Extracting client data fields...', 'active');
+    await delay(300);
+
+    setPipStep(4, 'active');
+    const l3 = addLog('Populating SOA template...', 'active');
+
+    // Build form data
+    const formData = new FormData();
+    formData.append('fact_finder', files.ff);
+    formData.append('soa_template', files.soa);
+    formData.append('risk_profile', document.getElementById('risk-profile').value);
+    formData.append('no_insurance', noInsurance ? 'true' : 'false');
+
+    try {
+      const response = await fetch('/process', { method: 'POST', body: formData });
+
+      if (!response.ok) {
+        const err = await response.json();
+        updateLog(l2, '✗ Data extraction failed', 'error');
+        updateLog(l3, '✗ Processing aborted', 'error');
+        document.getElementById('spinner').classList.remove('visible');
+        document.getElementById('error-msg').textContent = err.error || 'Unknown error';
+        document.getElementById('error-msg').classList.add('visible');
+        document.getElementById('btn-run').disabled = false;
+        return;
+      }
+
+      updateLog(l2, '✓ Client data extracted successfully', 'done');
+      updateLog(l3, '✓ SOA template populated — red font applied', 'done');
+
+      const l4 = addLog('Applying conditional section logic...', 'active');
+      await delay(200);
+      updateLog(l4, '✓ Conditional blocks processed', 'done');
+
+      setPipStep(5, 'active');
+      const l5 = addLog('Finalising document...', 'active');
+      await delay(200);
+      updateLog(l5, '✓ Draft SOA ready for download', 'done');
+
+      document.getElementById('spinner').classList.remove('visible');
+      setPipStep(5, 'done');
+
+      // Trigger download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const nameMatch = disposition.match(/filename="?([^"]+)"?/);
+      a.download = nameMatch ? nameMatch[1] : 'SOA_Draft.docx';
+      a.href = url;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Show result panel
+      const panel = document.getElementById('result-panel');
+      panel.classList.add('visible');
+      panel.innerHTML = `
+        <div class="result-box">
+          <div class="result-info">
+            <div class="result-label">✓ Draft SOA Downloaded</div>
+            <div class="result-name">${a.download}</div>
+            <div class="result-meta">All auto-populated fields are in red · Pending adviser review</div>
+          </div>
+        </div>`;
+
+    } catch (err) {
+      updateLog(l3, '✗ Network error — is the server running?', 'error');
+      document.getElementById('spinner').classList.remove('visible');
+      document.getElementById('error-msg').textContent = 'Could not connect to the backend server. Make sure app.py is running on port 5000.';
+      document.getElementById('error-msg').classList.add('visible');
+    }
+
+    document.getElementById('btn-run').disabled = false;
+  }
+</script>
+</body>
+</html>
