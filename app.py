@@ -15,7 +15,6 @@ Run:
 """
 
 from flask import Flask, request, send_file, jsonify, session, redirect, url_for, render_template_string
-import openpyxl
 from docx import Document
 from docx.shared import RGBColor, Pt
 from docx.oxml.ns import qn
@@ -80,22 +79,26 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
         - data dict  { "{{CODE}}": "value" }
         - conditionals dict  { "DELETE_KEY": True/False }
     """
-    wb = openpyxl.load_workbook(
-        io.BytesIO(xlsx_bytes),
-        data_only=True,
-        keep_vba=False,
-        rich_text=False
-    )
-    ws = wb["Fact Finder"]
+    from python_calamine import CalamineWorkbook
+    cal_wb   = CalamineWorkbook.from_bytes(xlsx_bytes)
+    sheet    = cal_wb.get_sheet_by_name("Fact Finder")
+    raw_rows = sheet.to_python(skip_empty_area=False)
+
+    # Build a row/col lookup dict identical to openpyxl's ws.cell(row, col).value
+    # calamine returns a list of rows; each row is a list of values
+    # rows and cols are 1-indexed to match existing code
+    cell_data = {}
+    for r_idx, row in enumerate(raw_rows, start=1):
+        for c_idx, val in enumerate(row, start=1):
+            cell_data[(r_idx, c_idx)] = val
 
     def cell(row, col):
         """Return cleaned string value from a cell, or '' if empty/zero placeholder."""
-        v = ws.cell(row=row, column=col).value
+        v = cell_data.get((row, col))
         if v is None:
             return ""
         s = str(v).strip()
-        # The FF uses 0 as a placeholder for unfilled cells
-        if s in ("0", "00:00:00", "#REF!"):
+        if s in ("0", "00:00:00", "#REF!", "None"):
             return ""
         return s
 
@@ -110,17 +113,17 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
     def sum_funds(row):
         total = 0
         for c in FUND_COLS:
-            v = ws.cell(row=row, column=c).value
+            v = cell_data.get((row, c))
             try:
-                total += float(str(v).replace(",","").replace("$",""))
+                total += float(str(v).replace(",", "").replace("$", ""))
             except Exception:
                 pass
         return total
 
     def currency(row, col):
-        v = ws.cell(row=row, column=col).value
+        v = cell_data.get((row, col))
         try:
-            return f"${float(str(v).replace(',','').replace('$','')):,.0f}"
+            return f"${float(str(v).replace(',', '').replace('$', '')):,.0f}"
         except Exception:
             return ""
 
@@ -129,8 +132,7 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
         return f"${s:,.0f}" if s else ""
 
     def age_from_dob(row, col=2):
-        """Calculate age from a date cell."""
-        v = ws.cell(row=row, column=col).value
+        v = cell_data.get((row, col))
         if not v:
             return None
         try:
@@ -152,7 +154,7 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
             return None
 
     def format_date(row, col=2):
-        v = ws.cell(row=row, column=col).value
+        v = cell_data.get((row, col))
         if not v:
             return ""
         try:
@@ -181,7 +183,7 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
     emp_status  = cell(23, 2)
 
     # ── Income ──
-    gross_income_raw = ws.cell(row=32, column=2).value
+    gross_income_raw = cell_data.get((32, 2))
     try:
         gross_income_num = float(str(gross_income_raw).replace(",","").replace("$",""))
         gross_income = f"${gross_income_num:,.0f}"
@@ -189,14 +191,14 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
         gross_income_num = 0
         gross_income = ""
 
-    sgc_pct_raw = ws.cell(row=34, column=2).value
+    sgc_pct_raw = cell_data.get((34, 2))
     try:
         sgc_pct = float(str(sgc_pct_raw).replace("%","")) / 100
     except Exception:
         sgc_pct = 0.12
     super_contribution = f"${gross_income_num * sgc_pct:,.0f}" if gross_income_num else ""
 
-    salary_sacrifice_raw = ws.cell(row=35, column=2).value
+    salary_sacrifice_raw = cell_data.get((35, 2))
     try:
         salary_sacrifice = f"${float(str(salary_sacrifice_raw).replace(',','').replace('$','')):,.0f}"
         annualised_salary_sacrifice = salary_sacrifice
@@ -211,12 +213,12 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
 
     # ── Spouse ──
     spouse_dob  = format_date(47, 2)
-    spouse_income_raw = ws.cell(row=49, column=2).value
+    spouse_income_raw = cell_data.get((49, 2))
     try:
         spouse_income = f"${float(str(spouse_income_raw).replace(',','').replace('$','')):,.0f}"
     except Exception:
         spouse_income = ""
-    spouse_balance_raw = ws.cell(row=50, column=2).value
+    spouse_balance_raw = cell_data.get((50, 2))
     try:
         spouse_balance = f"${float(str(spouse_balance_raw).replace(',','').replace('$','')):,.0f}"
     except Exception:
@@ -238,7 +240,7 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
     # Total assets
     total_assets = 0
     for r, c in [(73,2),(76,2),(79,2)]:
-        v = ws.cell(row=r, column=c).value
+        v = cell_data.get((r, c))
         try:
             total_assets += float(str(v).replace(",","").replace("$",""))
         except Exception:
@@ -249,7 +251,7 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
 
     total_liabilities = 0
     for r, c in [(74,2),(77,2),(81,2)]:
-        v = ws.cell(row=r, column=c).value
+        v = cell_data.get((r, c))
         try:
             total_liabilities += float(str(v).replace(",","").replace("$",""))
         except Exception:
@@ -265,28 +267,27 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
     def insurance_across(row):
         vals = []
         for c in FUND_COLS:
-            v = ws.cell(row=row, column=c).value
+            v = cell_data.get((row, c))
             if v:
                 s = str(v).strip()
                 if s not in ("0","","None"):
                     vals.append(s)
         if not vals:
             return ""
-        # Format: if multiple funds, join; if same value, show once
         unique = list(dict.fromkeys(vals))
         return " / ".join(unique)
 
-    life_ins  = insurance_across(102)
-    tpd_ins   = insurance_across(103)
-    ip_month  = insurance_across(104)
-    ip_wait   = insurance_across(105)
+    life_ins   = insurance_across(102)
+    tpd_ins    = insurance_across(103)
+    ip_month   = insurance_across(104)
+    ip_wait    = insurance_across(105)
     ip_benefit = insurance_across(106)
-    premiums  = insurance_across(107)
+    premiums   = insurance_across(107)
 
     # ── Binding Death Nominee ──
     nominee_names = []
     for c in [2, 4, 6, 8, 10]:
-        v = ws.cell(row=62, column=c).value
+        v = cell_data.get((62, c))
         if v and str(v).strip() not in ("0","","None"):
             nominee_names.append(str(v).strip())
     binding_death_nominee = ", ".join(nominee_names) if nominee_names else "N/A"
@@ -350,13 +351,13 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
 
     # Row 100: insurance in fund — check all fund columns
     has_any_insurance = any(
-        str(ws.cell(row=100, column=c).value or "").strip().lower() == "yes"
+        str(cell_data.get((100, c)) or "").strip().lower() == "yes"
         for c in FUND_COLS
     )
 
     # Row 108: medically underwritten
     has_underwritten = any(
-        str(ws.cell(row=108, column=c).value or "").strip().lower() == "medically underwritten"
+        str(cell_data.get((108, c)) or "").strip().lower() == "medically underwritten"
         for c in FUND_COLS
     )
 
