@@ -80,7 +80,7 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
         - conditionals dict  { "DELETE_KEY": True/False }
     """
     from python_calamine import CalamineWorkbook
-    cal_wb   = CalamineWorkbook.from_bytes(xlsx_bytes)
+    cal_wb   = CalamineWorkbook.from_filelike(io.BytesIO(xlsx_bytes))
     sheet    = cal_wb.get_sheet_by_name("Fact Finder")
     raw_rows = sheet.to_python(skip_empty_area=False)
 
