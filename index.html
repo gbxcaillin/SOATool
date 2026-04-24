@@ -664,7 +664,7 @@
     } catch (err) {
       updateLog(l3, '✗ Network error — is the server running?', 'error');
       document.getElementById('spinner').classList.remove('visible');
-      document.getElementById('error-msg').textContent = 'Could not connect to the backend server. Make sure app.py is running on port 5000.';
+      document.getElementById('error-msg').textContent = 'Connection error — please refresh the page and try again. If the problem persists, check the Render logs.';
       document.getElementById('error-msg').classList.add('visible');
     }
 
