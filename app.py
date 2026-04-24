@@ -80,7 +80,12 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag):
         - data dict  { "{{CODE}}": "value" }
         - conditionals dict  { "DELETE_KEY": True/False }
     """
-    wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes), data_only=True)
+    wb = openpyxl.load_workbook(
+        io.BytesIO(xlsx_bytes),
+        data_only=True,
+        keep_vba=False,
+        rich_text=False
+    )
     ws = wb["Fact Finder"]
 
     def cell(row, col):
@@ -614,7 +619,13 @@ def apply_conditional_deletions(doc, conditionals):
 
 def process_soa(template_bytes, data, conditionals):
     """Main processor — returns completed docx as bytes."""
-    doc = Document(io.BytesIO(template_bytes))
+    import gc
+
+    # Load document then immediately free the raw bytes from memory
+    buf = io.BytesIO(template_bytes)
+    doc = Document(buf)
+    del template_bytes, buf
+    gc.collect()
 
     # Step 1: Apply conditional block deletions
     apply_conditional_deletions(doc, conditionals)
@@ -640,6 +651,8 @@ def process_soa(template_bytes, data, conditionals):
 
     out = io.BytesIO()
     doc.save(out)
+    del doc
+    gc.collect()
     out.seek(0)
     return out
 
@@ -817,7 +830,11 @@ def process():
         ff_bytes       = request.files["fact_finder"].read()
         template_bytes = request.files["soa_template"].read()
 
+        # Read fact finder then free its bytes
         data, conditionals = read_fact_finder(ff_bytes, risk_profile, no_insurance)
+        del ff_bytes
+
+        # Process SOA (template_bytes freed inside process_soa)
         out = process_soa(template_bytes, data, conditionals)
 
         client_name = data.get("{{ClientFullName}}", "Client")
