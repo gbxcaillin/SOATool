@@ -793,7 +793,8 @@ def logout():
 def tool():
     if not logged_in():
         return redirect(url_for("login"))
-    with open("index.html", "r") as f:
+    html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+    with open(html_path, "r") as f:
         return f.read()
 
 
@@ -837,4 +838,5 @@ def process():
 
 
 if __name__ == "__main__":
-    app.run(debug=False, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port)
