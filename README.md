@@ -109,6 +109,7 @@ Use nginx as a reverse proxy in front of gunicorn for production.
 | `{{AnnualisedSalarySacrificeAmount}}` | FF row 35 |
 | `{{BindingDeathNominee}}` | FF row 62 cols B/D/F/H/J |
 | `{{CurrentRiskProfile}}` | UI dropdown selection |
+| `{{InflationGrowthTable}}` | 4×6 projection table: super balance at retirement across 4 inflation scenarios (0%, 2.5%, 2.75%, 4%) × 6 return rates (2.5%–15%). Derived from current super balance (FF row 94 sum), retirement age (FF rows 8–9), and current age (calculated from DOB). Years = floor(retirement\_age − current\_age). Net rate = gross × 0.85 − 1% fee − inflation. |
 
 ---
 

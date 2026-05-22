@@ -311,6 +311,62 @@ DEFAULT_SCENARIO_LIBRARY = _load_bundled_scenario_library()
 
 
 # ─────────────────────────────────────────────
+# INFLATION-ADJUSTED GROWTH TABLE
+# ─────────────────────────────────────────────
+
+_INFLATION_SCENARIOS = [
+    (0.0,    "No inflation"),
+    (0.025,  "2.5% inflation"),
+    (0.0275, "2.75% inflation"),
+    (0.04,   "4.0% inflation"),
+]
+_GROSS_RETURNS  = [0.025, 0.05, 0.075, 0.10, 0.125, 0.15]
+_RETURN_LABELS  = ["2.5%", "5%", "7.5%", "10%", "12.5%", "15%"]
+
+
+def _net_rate(gross_return, inflation):
+    """Net real rate after 15% tax on gains, 1% annual fee, and inflation."""
+    return gross_return * 0.85 - 0.01 - inflation
+
+
+def build_inflation_growth_table(balance, years):
+    """
+    Return a plain-text 4×6 inflation-adjusted growth projection table.
+
+    Args:
+        balance (float): Current super balance in AUD.
+        years   (int):   Years to retirement — always floor(retirement_age - current_age).
+
+    Returns:
+        str: Tab/newline delimited table ready for Word insertion, or '' if inputs invalid.
+    """
+    if not balance or balance <= 0 or not years or years < 1:
+        return ""
+    try:
+        years   = int(years)
+        balance = float(balance)
+    except (TypeError, ValueError):
+        return ""
+
+    header = "Inflation / Return\t" + "\t".join(_RETURN_LABELS)
+    rows   = [header]
+    for inflation, label in _INFLATION_SCENARIOS:
+        cells = [label]
+        for gross in _GROSS_RETURNS:
+            nr        = _net_rate(gross, inflation)
+            projected = balance * ((1 + nr) ** years)
+            cells.append(f"${projected:,.0f}")
+        rows.append("\t".join(cells))
+
+    rows.append("")
+    rows.append(
+        f"Assumptions: {years} years to retirement | "
+        "1% p.a. fee | 15% tax on gains | No contributions | No additional fees"
+    )
+    return "\n".join(rows)
+
+
+# ─────────────────────────────────────────────
 # FACT FINDER READER
 # ─────────────────────────────────────────────
 
@@ -737,6 +793,16 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag,
         "{{RetirementAge}}":                     retirement_age,
         "{{CurrentBalance}}":                    current_balance,
         "{{CurrentAge}}":                        str(age) if age else "",
+        # Inflation-adjusted growth projection table.
+        # Derived from super balance (row 94 sum), retirement age (rows 8–9), and
+        # current age (calculated from DOB row 15). Years = floor(retirement_age - current_age).
+        # Net rate = gross_return × 0.85 − 1% fee − inflation. All content inserted in red.
+        "{{InflationGrowthTable}}":              build_inflation_growth_table(
+            _total_super,
+            (int(retirement_age) - age)
+            if (retirement_age and age and str(retirement_age).isdigit())
+            else None,
+        ),
         "{{CurrentDate}}":                       current_date,
         # Ongoing Fee Agreement date placeholders — exact strings (with leading spaces) per the OFA template.
         "{{ Presentation date + 12 months}}":    reference_date_str,
