@@ -329,41 +329,161 @@ def _net_rate(gross_return, inflation):
     return gross_return * 0.85 - 0.01 - inflation
 
 
-def build_inflation_growth_table(balance, years):
+def build_inflation_growth_table_elements(balance, years):
     """
-    Return a plain-text 4×6 inflation-adjusted growth projection table.
+    Build the inflation-adjusted growth projection as REAL Word table XML elements.
+    Returns a list of body-level elements ready to splice into the document:
+        [<w:tbl>, <w:p assumptions footer>]
+    Returns an empty list if inputs are invalid (table won't be inserted; marker stripped).
 
-    Args:
-        balance (float): Current super balance in AUD.
-        years   (int):   Years to retirement — always floor(retirement_age - current_age).
-
-    Returns:
-        str: Tab/newline delimited table ready for Word insertion, or '' if inputs invalid.
+    Table styling:
+      - Navy header row (#123559) with white bold text
+      - Alternating row shading on data rows (#F2F2F2 light gray)
+      - Currency cells right-aligned, label cells left-aligned
+      - Width: ~9000 DXA (full content width at 1" margins)
     """
     if not balance or balance <= 0 or not years or years < 1:
-        return ""
+        return []
     try:
         years   = int(years)
         balance = float(balance)
     except (TypeError, ValueError):
-        return ""
+        return []
 
-    header = "Inflation / Return\t" + "\t".join(_RETURN_LABELS)
-    rows   = [header]
-    for inflation, label in _INFLATION_SCENARIOS:
-        cells = [label]
-        for gross in _GROSS_RETURNS:
-            nr        = _net_rate(gross, inflation)
-            projected = balance * ((1 + nr) ** years)
-            cells.append(f"${projected:,.0f}")
-        rows.append("\t".join(cells))
+    from lxml import etree
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
-    rows.append("")
-    rows.append(
-        f"Assumptions: {years} years to retirement | "
-        "1% p.a. fee | 15% tax on gains | No contributions | No additional fees"
-    )
-    return "\n".join(rows)
+    NAVY        = "123559"
+    LIGHT_GRAY  = "F2F2F2"
+    TEXT_NAVY   = "0E2640"
+    TEXT_MUTED  = "5C6B7E"
+
+    col_widths  = [2200] + [1133] * 6   # 2200 + 6×1133 = 8998 ≈ 9000
+
+    def E(tag, attrs=None):
+        el = etree.Element(f"{{{W}}}{tag}")
+        if attrs:
+            for k, v in attrs.items():
+                el.set(f"{{{W}}}{k}", str(v))
+        return el
+
+    def make_cell(width_dxa, text, *, bold=False, color=TEXT_NAVY, fill=None, align="left"):
+        tc   = E("tc")
+        tcPr = E("tcPr"); tc.append(tcPr)
+        tcPr.append(E("tcW", {"w": str(width_dxa), "type": "dxa"}))
+        if fill:
+            tcPr.append(E("shd", {"fill": fill, "val": "clear"}))
+        # Cell vertical alignment + margins
+        tcPr.append(E("vAlign", {"val": "center"}))
+        p   = E("p")
+        pPr = E("pPr"); p.append(pPr)
+        pPr.append(E("jc",      {"val": align}))
+        pPr.append(E("spacing", {"after": "0"}))
+        r   = E("r")
+        rPr = E("rPr"); r.append(rPr)
+        if bold:
+            rPr.append(E("b"))
+        rPr.append(E("color", {"val": color}))
+        rPr.append(E("sz",    {"val": "20"}))   # 10pt
+        rPr.append(E("rFonts",{"ascii": "Arial", "hAnsi": "Arial"}))
+        t = E("t"); t.text = text
+        r.append(t); p.append(r); tc.append(p)
+        return tc
+
+    # ── <w:tbl> ──
+    tbl   = E("tbl")
+    tblPr = E("tblPr"); tbl.append(tblPr)
+    tblPr.append(E("tblW", {"w": "9000", "type": "dxa"}))
+    # Single solid borders all round (light gray)
+    tblBorders = E("tblBorders")
+    for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        b = E(side)
+        b.set(f"{{{W}}}val",   "single")
+        b.set(f"{{{W}}}sz",    "4")
+        b.set(f"{{{W}}}color", "CCCCCC")
+        tblBorders.append(b)
+    tblPr.append(tblBorders)
+
+    tblGrid = E("tblGrid"); tbl.append(tblGrid)
+    for w in col_widths:
+        tblGrid.append(E("gridCol", {"w": str(w)}))
+
+    # ── Header row ──
+    tr = E("tr")
+    # Keep header repeated on page break
+    trPr = E("trPr"); tr.append(trPr)
+    trPr.append(E("tblHeader"))
+    tr.append(make_cell(col_widths[0], "Inflation Scenario",
+                        bold=True, color="FFFFFF", fill=NAVY, align="left"))
+    for i, label in enumerate(_RETURN_LABELS):
+        tr.append(make_cell(col_widths[i+1], label,
+                            bold=True, color="FFFFFF", fill=NAVY, align="right"))
+    tbl.append(tr)
+
+    # ── Data rows ──
+    for row_idx, (inflation, infl_label) in enumerate(_INFLATION_SCENARIOS):
+        tr   = E("tr")
+        fill = LIGHT_GRAY if row_idx % 2 == 0 else None
+        tr.append(make_cell(col_widths[0], infl_label,
+                            bold=False, color=TEXT_NAVY, fill=fill, align="left"))
+        for i, gross in enumerate(_GROSS_RETURNS):
+            projected = balance * ((1 + _net_rate(gross, inflation)) ** years)
+            tr.append(make_cell(col_widths[i+1], f"${projected:,.0f}",
+                                bold=False, color=TEXT_NAVY, fill=fill, align="right"))
+        tbl.append(tr)
+
+    # ── Assumptions footer paragraph (italic, small, muted) ──
+    p   = E("p")
+    pPr = E("pPr"); p.append(pPr)
+    pPr.append(E("spacing", {"before": "120", "after": "120"}))
+    r   = E("r")
+    rPr = E("rPr"); r.append(rPr)
+    rPr.append(E("i"))
+    rPr.append(E("sz",     {"val": "16"}))          # 8pt
+    rPr.append(E("color",  {"val": TEXT_MUTED}))
+    rPr.append(E("rFonts", {"ascii": "Arial", "hAnsi": "Arial"}))
+    t = E("t")
+    t.text = (f"Assumptions: {years} years to retirement | "
+              "1% p.a. fee | 15% tax on gains | No contributions | No additional fees")
+    r.append(t); p.append(r)
+
+    return [tbl, p]
+
+
+def insert_inflation_growth_table(doc, balance, years):
+    """Find the {{InflationGrowthTable}} marker paragraph and replace it with the
+    real Word table built by build_inflation_growth_table_elements().
+    If balance/years are invalid, the marker is still stripped (clean output)."""
+    if not scenario_marker_present(doc, "{{InflationGrowthTable}}"):
+        return
+    elements = build_inflation_growth_table_elements(balance, years)
+    body = doc.element.body
+    for el in list(body):
+        tag = el.tag.split('}')[-1] if '}' in el.tag else el.tag
+        if tag != 'p':
+            continue
+        text = _get_para_text(el)
+        if "{{InflationGrowthTable}}" not in text:
+            continue
+        parent = el.getparent()
+        if parent is None:
+            continue
+        idx = list(parent).index(el)
+        for i, new_el in enumerate(elements):
+            parent.insert(idx + 1 + i, new_el)
+        parent.remove(el)
+        return   # only handle the first occurrence
+
+
+def scenario_marker_present(doc, marker):
+    """Return True if any body paragraph contains the given marker text."""
+    body = doc.element.body
+    for el in list(body):
+        if el.tag.split('}')[-1] != 'p':
+            continue
+        if marker in _get_para_text(el):
+            return True
+    return False
 
 
 # ─────────────────────────────────────────────
@@ -793,16 +913,10 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag,
         "{{RetirementAge}}":                     retirement_age,
         "{{CurrentBalance}}":                    current_balance,
         "{{CurrentAge}}":                        str(age) if age else "",
-        # Inflation-adjusted growth projection table.
-        # Derived from super balance (row 94 sum), retirement age (rows 8–9), and
-        # current age (calculated from DOB row 15). Years = floor(retirement_age - current_age).
-        # Net rate = gross_return × 0.85 − 1% fee − inflation. All content inserted in red.
-        "{{InflationGrowthTable}}":              build_inflation_growth_table(
-            _total_super,
-            (int(retirement_age) - age)
-            if (retirement_age and age and str(retirement_age).isdigit())
-            else None,
-        ),
+        # NOTE: {{InflationGrowthTable}} is intentionally NOT in this dict — it's
+        # replaced with a real Word table by insert_inflation_growth_table() inside
+        # process_soa, not by string find-and-replace. The years/balance values needed
+        # for the table calculation are carried out via a side-channel below.
         "{{CurrentDate}}":                       current_date,
         # Ongoing Fee Agreement date placeholders — exact strings (with leading spaces) per the OFA template.
         "{{ Presentation date + 12 months}}":    reference_date_str,
@@ -903,6 +1017,20 @@ def read_fact_finder(xlsx_bytes, risk_profile, no_insurance_flag,
             v = (goal_overrides.get(k) or "").strip()
             if v:
                 data[code] = v
+
+    # ── Side-channel for the inflation growth table ──
+    # process_soa uses these to BUILD a real Word table and splice it at the
+    # {{InflationGrowthTable}} marker (rather than doing string find-and-replace).
+    # Sentinel keys (leading underscore — never appear as {{codes}} in templates).
+    data["_inflation_balance"] = _total_super
+    try:
+        data["_inflation_years"] = (
+            int(retirement_age) - age
+            if (retirement_age and age and str(retirement_age).isdigit())
+            else None
+        )
+    except (TypeError, ValueError):
+        data["_inflation_years"] = None
 
     return data, conditionals
 
@@ -1295,6 +1423,15 @@ def process_soa(template_bytes, data, conditionals, scenario_library=None, scena
     # stripped so they don't pollute the output.
     if scenario_num:
         insert_scenario_content(doc, scenario_library, scenario_num)
+
+    # Step 1a: Splice in the inflation growth table as a real Word table.
+    # Runs AFTER scenario insertion (in case scenarios bring in the marker) and
+    # BEFORE find-and-replace (so the marker text doesn't get touched as a string).
+    insert_inflation_growth_table(
+        doc,
+        data.get("_inflation_balance"),
+        data.get("_inflation_years"),
+    )
 
     # Step 1b: Apply ALL conditional block deletions across the fully-spliced document.
     # Process is: add everything in first (Step 1), then prune unwanted content last.
